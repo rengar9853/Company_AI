@@ -21,7 +21,7 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <div className="page center">Loading...</div>;
+    return <div className="page center">加载中...</div>;
   }
 
   if (!user) {
