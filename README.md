@@ -50,6 +50,7 @@
 - 前端：[http://localhost:5173](http://localhost:5173)
 - 后端健康检查：[http://localhost:3001/health](http://localhost:3001/health)
 - MCP 健康检查：[http://localhost:3001/mcp/health](http://localhost:3001/mcp/health)
+- Nginx 统一入口：[http://localhost:8080](http://localhost:8080)
 
 ## 默认管理员
 
@@ -90,6 +91,56 @@
 6. 如果你启用了 Bearer Token，就在连接配置里填对应的认证信息
 
 如果你只想使用 MCP，而不打算让这个网站直接调用模型，那么可以不配置 `OPENAI_API_KEY` 或 Azure 相关变量。
+
+## Windows 常驻启动
+
+项目现在提供了一套更稳的 Windows 常驻方案，核心思路是：
+
+- 用 `Docker Compose` 承载长期运行
+- 用 `restart: unless-stopped` 保证容器自动恢复
+- 用 Windows 任务计划在登录后拉起整套服务
+- 用 watchdog 任务每 5 分钟巡检一次
+
+相关脚本在：
+
+- `scripts/windows/start-company-ai.ps1`
+- `scripts/windows/stop-company-ai.ps1`
+- `scripts/windows/watchdog-company-ai.ps1`
+- `scripts/windows/install-company-ai-tasks.ps1`
+- `scripts/windows/uninstall-company-ai-tasks.ps1`
+
+推荐安装方式：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows\install-company-ai-tasks.ps1 -RunImmediately
+```
+
+这个安装脚本会创建两个计划任务：
+
+- `Company AI - Start Stack`
+- `Company AI - Watchdog`
+
+如果当前账号没有注册计划任务的权限，安装脚本会自动退化成：
+
+- 启动文件夹自启动
+- 隐藏 PowerShell watchdog 循环
+
+如果你想手动启动一次，也可以直接运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows\start-company-ai.ps1 -Build
+```
+
+日志默认写到：
+
+- `logs/windows-startup.log`
+- `logs/windows-watchdog.log`
+
+如果你想把入口端口改成别的值，可以在项目根目录创建 `.env`，例如：
+
+```dotenv
+COMPANY_AI_WEB_PORT=8080
+```
 
 ## 直连模型模式
 
