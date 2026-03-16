@@ -13,6 +13,7 @@ const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const chatRoutes = require("./routes/chats");
 const fileRoutes = require("./routes/files");
+const mcpRoutes = require("./routes/mcp");
 const realtimeRoutes = require("./routes/realtime");
 
 const app = express();
@@ -45,6 +46,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/realtime", realtimeRoutes);
+app.use("/mcp", mcpRoutes);
 
 async function ensureAdminSeed() {
   const email = process.env.ADMIN_EMAIL;
@@ -75,3 +77,4 @@ pool
     console.error("Failed to start server:", err);
     process.exit(1);
   });
+
