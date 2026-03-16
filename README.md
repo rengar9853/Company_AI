@@ -57,15 +57,15 @@
 
 可选项：
 - `AZURE_OPENAI_AUTH_TOKEN=`：如果你已经自行拿到了 Bearer Token，也可以直接填这里
-- `AZURE_OPENAI_API_VERSION=preview`
+- `AZURE_OPENAI_AUTH_SCOPE=https://ai.azure.com/.default`
 - `AZURE_OPENAI_ENABLE_WEB_SEARCH=false`
 - `AZURE_OPENAI_REALTIME_MODEL=`
 - `AZURE_OPENAI_REALTIME_REGION=`
 
 说明：
 - 后端使用 `DefaultAzureCredential` 获取 Bearer Token。
-- 若启用 Azure 模式，聊天与 Realtime 接口都会改用 Azure OpenAI 的 OAuth 鉴权。
-- Web Search 在 Azure 下默认关闭，避免不同预览版本的工具类型不兼容。
+- Azure OpenAI v1 端点已不再依赖 `api-version` 查询参数。
+- Web Search 在 Azure 下默认关闭，避免预览工具类型不兼容。
 
 ## 本地文件存储
 - 默认上传目录：`../data/uploads`

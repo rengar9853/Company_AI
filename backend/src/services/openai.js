@@ -4,8 +4,7 @@ const FormData = require("form-data");
 const { Readable } = require("stream");
 
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_AZURE_SCOPE = "https://cognitiveservices.azure.com/.default";
-const DEFAULT_AZURE_API_VERSION = "preview";
+const DEFAULT_AZURE_SCOPE = "https://ai.azure.com/.default";
 
 let azureCredential;
 
@@ -41,10 +40,6 @@ function getAzureBaseUrl() {
   return `${endpoint}/openai/v1`;
 }
 
-function getAzureApiVersion() {
-  return process.env.AZURE_OPENAI_API_VERSION || DEFAULT_AZURE_API_VERSION;
-}
-
 function getAzureScope() {
   return process.env.AZURE_OPENAI_AUTH_SCOPE || DEFAULT_AZURE_SCOPE;
 }
@@ -52,9 +47,7 @@ function getAzureScope() {
 function buildApiUrl(resourcePath) {
   const path = resourcePath.replace(/^\/+/, "");
   if (isAzureProvider()) {
-    const url = new URL(`${getAzureBaseUrl()}/${path}`);
-    url.searchParams.set("api-version", getAzureApiVersion());
-    return url.toString();
+    return `${getAzureBaseUrl()}/${path}`;
   }
   return `${OPENAI_BASE_URL}/${path}`;
 }
