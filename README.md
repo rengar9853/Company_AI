@@ -1,18 +1,19 @@
 # Company AI
 
-这是一个面向企业内部使用的 AI 平台，包含两条并行能力：
+这是一个面向企业内部场景的 AI 平台，当前同时提供两套能力：
 
 - Web 管理后台：登录、会话、文件、本地存储、管理员控制台
-- MCP Server：让 ChatGPT 在 Developer Mode 下通过 MCP 直接调用你的后台数据与管理能力
+- ChatGPT App / MCP Server：让 ChatGPT 通过远程 MCP 直接访问平台数据，并在对话里渲染交互式控制台
 
 ## 当前能力
 
 - 内部账号登录与管理员用户管理
-- 对话与会话持久化
+- 会话与消息持久化
 - 本地文件上传、索引与下载
 - OpenAI / Azure OpenAI 直连模式
 - Realtime token 接口
-- 远程 MCP Server（Streamable HTTP）
+- 远程 MCP Server
+- ChatGPT App 控制台
 
 ## 技术栈
 
@@ -27,14 +28,15 @@
 - `backend/` 后端服务
 - `frontend/` 前端应用
 - `nginx/` Nginx 配置
-- `docker-compose.yml` 本地依赖编排
+- `scripts/windows/` Windows 常驻启动脚本
 - `data/uploads/` 本地文件存储目录
+- `docker-compose.yml` 本地依赖编排
 
 ## 本地启动
 
-1. 复制环境变量文件
+1. 复制环境变量模板
    - `backend/.env.example` -> `backend/.env`
-2. 启动数据库与缓存
+2. 启动基础依赖
    - `docker compose up -d mysql redis`
 3. 启动后端
    - `cd backend`
@@ -57,15 +59,26 @@
 - 邮箱：`admin@example.com`
 - 密码：`admin12345`
 
-## MCP 接入说明
+## ChatGPT App / MCP
 
-项目现在内置了一个远程 MCP Server，默认端点为：
+项目内置了一个远程 MCP Server，默认端点是：
 
 - `POST /mcp`
 
-当前 MCP 使用无状态 `Streamable HTTP`，并且启用了 JSON 响应模式，比较适合挂在现有 Express 服务后面统一部署。
+当前 MCP 使用无状态 `Streamable HTTP`，适合直接挂在现有 Express 服务后面。它现在不仅有文本工具，也带了一个可以在 ChatGPT 中渲染的交互式 App 控制台。
 
-### 可用 tools
+### App 工具
+
+- `open_company_dashboard`
+
+这个工具会在 ChatGPT 中打开 Company AI 的内嵌控制台，展示：
+
+- 平台概览卡片
+- 近期用户、会话、文件
+- 近期模型调用统计
+- 用户详情与会话转录下钻
+
+### 文本工具
 
 - `get_platform_overview`
 - `list_internal_users`
@@ -76,32 +89,34 @@
 - `list_recent_usage`
 - `create_internal_user`
 
-### 可用 resource / prompt
+### Resource / Prompt
 
 - Resource：`company-ai://platform/guide`
+- App Resource：`ui://company-ai/dashboard.html`
 - Prompt：`platform_audit_assistant`
 
-### 在 ChatGPT 里连接
+### 在 ChatGPT 中接入
 
 1. 把后端部署到一个可被 ChatGPT 访问的 HTTPS 域名
 2. 确认 MCP 端点可访问，例如 `https://your-domain.com/mcp`
-3. 在 `backend/.env` 里设置 `MCP_BEARER_TOKEN`（推荐）
-4. 在 ChatGPT Developer Mode 中添加远程 MCP Server
-5. 端点填 `https://your-domain.com/mcp`
-6. 如果你启用了 Bearer Token，就在连接配置里填对应的认证信息
+3. 在 `backend/.env` 中设置 `MCP_BEARER_TOKEN`，建议开启
+4. 在 ChatGPT 的 Developer Mode 中添加远程 MCP Server
+5. 填入你的远程地址 `https://your-domain.com/mcp`
+6. 如果开启了 Bearer Token，同时配置对应认证信息
+7. 连接成功后，直接让 ChatGPT 调用 `open_company_dashboard`
 
-如果你只想使用 MCP，而不打算让这个网站直接调用模型，那么可以不配置 `OPENAI_API_KEY` 或 Azure 相关变量。
+如果你只打算通过 ChatGPT App / MCP 使用这个系统，而不需要网站自己去直连模型，那么可以不配置 `OPENAI_API_KEY` 或 Azure 相关变量。
 
 ## Windows 常驻启动
 
-项目现在提供了一套更稳的 Windows 常驻方案，核心思路是：
+项目已经提供更稳的 Windows 常驻启动方案，核心思路是：
 
-- 用 `Docker Compose` 承载长期运行
-- 用 `restart: unless-stopped` 保证容器自动恢复
-- 用 Windows 任务计划在登录后拉起整套服务
-- 用 watchdog 任务每 5 分钟巡检一次
+- 使用 `Docker Compose` 承载长期运行服务
+- 使用 `restart: unless-stopped` 保证容器自动恢复
+- 通过 Windows 自启动或任务计划拉起整套服务
+- 使用 watchdog 脚本定时巡检
 
-相关脚本在：
+相关脚本：
 
 - `scripts/windows/start-company-ai.ps1`
 - `scripts/windows/stop-company-ai.ps1`
@@ -115,41 +130,24 @@
 powershell -ExecutionPolicy Bypass -File .\scripts\windows\install-company-ai-tasks.ps1 -RunImmediately
 ```
 
-这个安装脚本会创建两个计划任务：
-
-- `Company AI - Start Stack`
-- `Company AI - Watchdog`
-
 如果当前账号没有注册计划任务的权限，安装脚本会自动退化成：
 
 - 启动文件夹自启动
 - 隐藏 PowerShell watchdog 循环
 
-如果你想手动启动一次，也可以直接运行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\windows\start-company-ai.ps1 -Build
-```
-
-日志默认写到：
+日志默认写入：
 
 - `logs/windows-startup.log`
 - `logs/windows-watchdog.log`
 
-如果你想把入口端口改成别的值，可以在项目根目录创建 `.env`，例如：
+## 网站直连模型
 
-```dotenv
-COMPANY_AI_WEB_PORT=8080
-```
-
-## 直连模型模式
-
-如果你仍然想保留“网站自己调用模型”的能力，可以继续使用现有的两种方式：
+如果你仍然希望网站本身去直连模型，可以继续使用这两种方式：
 
 - OpenAI API Key
 - Azure OpenAI + Microsoft Entra ID
 
-这部分配置只影响网站里的聊天和 Realtime 接口，不影响 MCP Server 本身。
+这部分只影响网站里的聊天与 Realtime 接口，不影响 ChatGPT App / MCP。
 
 ## 本地文件存储
 
@@ -157,15 +155,15 @@ COMPANY_AI_WEB_PORT=8080
 - 单文件大小上限：`200MB`
 - 文件长期保留在本地磁盘
 
-## 环境变量补充
+## 环境变量
 
-MCP 相关变量：
+MCP 相关：
 
 - `MCP_SERVER_NAME=company-ai-mcp`
-- `MCP_SERVER_VERSION=0.2.0`
+- `MCP_SERVER_VERSION=0.3.0`
 - `MCP_BEARER_TOKEN=`
 
-如果要启用网站内置聊天，再额外配置：
+网站聊天相关：
 
 - `LLM_PROVIDER=openai` 或 `azure-openai`
 - `OPENAI_API_KEY=`
@@ -174,5 +172,5 @@ MCP 相关变量：
 ## 注意事项
 
 - `.env` 不会提交到仓库
-- 生产环境请务必更换默认管理员密码和 `JWT_SECRET`
-- 如果你把 MCP 公开到互联网，建议至少启用 `MCP_BEARER_TOKEN` 或放在受保护的反向代理后面
+- 生产环境务必更换默认管理员密码和 `JWT_SECRET`
+- 如果将 MCP 暴露到公网，至少开启 `MCP_BEARER_TOKEN` 或放在受保护的反向代理之后
