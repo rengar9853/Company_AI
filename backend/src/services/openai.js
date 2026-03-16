@@ -4,7 +4,7 @@ const FormData = require("form-data");
 const { Readable } = require("stream");
 
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_AZURE_SCOPE = "https://ai.azure.com/.default";
+const DEFAULT_AZURE_SCOPE = "https://cognitiveservices.azure.com/.default";
 
 let azureCredential;
 
