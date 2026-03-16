@@ -1,29 +1,29 @@
-# 企业级 ChatGPT 平台（自建部署）
+# 企业级 ChatGPT 平台
 
-这是一个全栈的 ChatGPT 类网站项目，具备内部账号登录、会话管理、文件上传索引、工具调用与管理控制台等能力。
+这是一个自建部署的全栈 AI 平台，提供内部账号登录、会话管理、文件上传检索、工具调用和管理员控制台。
 
-## 功能概览
-- 内部账号登录（管理员创建/禁用用户）
-- 对话与会话管理（支持流式输出）
-- 文件上传 + 本地落地存储（默认 `./data/uploads`）
-- OpenAI Responses API 工具集成（检索/代码/联网搜索/图像）
-- 管理员控制台（用户管理、权限、重置密码）
+## 功能
+- 内部账号登录与管理员用户管理
+- 对话与会话管理
+- 本地文件上传与索引
+- OpenAI / Azure OpenAI 双模式接入
+- Realtime 会话令牌接口
 
 ## 技术栈
 - 前端：React + Vite
 - 后端：Node.js + Express
 - 数据库：MySQL
-- 缓存/限流：Redis
-- 反向代理：Nginx
+- 缓存：Redis
+- 代理：Nginx
 
-## 目录结构
+## 目录
 - `backend/` 后端服务
 - `frontend/` 前端应用
 - `nginx/` 反向代理配置
-- `docker-compose.yml` 本地自建栈
-- `data/uploads/` 本地文件存储挂载点
+- `docker-compose.yml` 本地依赖编排
+- `data/uploads/` 本地文件存储目录
 
-## 快速开始（本地开发）
+## 本地启动
 1. 复制环境变量：
    - `backend/.env.example` -> `backend/.env`
 2. 启动基础服务：
@@ -37,24 +37,40 @@
    - `npm install`
    - `npm run dev`
 
-访问：
+访问地址：
 - 前端：`http://localhost:5173`
 - 后端健康检查：`http://localhost:3001/health`
 
-## 默认管理员账号
-后端启动时会根据 `.env` 自动创建管理员账号：
-- `ADMIN_EMAIL=admin@example.com`
-- `ADMIN_PASSWORD=admin12345`
+## 默认管理员
+- 邮箱：`admin@example.com`
+- 密码：`admin12345`
 
-你可以在 `backend/.env` 中修改这两个值。
+## Azure OpenAI OAuth 模式
+当无法使用公有 OpenAI API Key 时，可以切换到 Azure OpenAI + Microsoft Entra ID。
 
-## 重要配置说明
-`backend/.env` 中常用项：
-- `DB_PORT=3307`（本项目默认将 MySQL 映射到 3307）
-- `OPENAI_API_KEY=...`（启用 OpenAI 能力）
-- `UPLOAD_DIR=../data/uploads`（本地文件存储目录）
-- `ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
+关键环境变量：
+- `LLM_PROVIDER=azure-openai`
+- `AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com`
+- `AZURE_TENANT_ID=...`
+- `AZURE_CLIENT_ID=...`
+- `AZURE_CLIENT_SECRET=...`
 
-## 说明
-- `.env` 不会提交到仓库，请在部署环境中配置。
-- 文件上传会落地到本地磁盘，并在配置 `OPENAI_API_KEY` 后同步索引到向量库。
+可选项：
+- `AZURE_OPENAI_AUTH_TOKEN=`：如果你已经自行拿到了 Bearer Token，也可以直接填这里
+- `AZURE_OPENAI_API_VERSION=preview`
+- `AZURE_OPENAI_ENABLE_WEB_SEARCH=false`
+- `AZURE_OPENAI_REALTIME_MODEL=`
+- `AZURE_OPENAI_REALTIME_REGION=`
+
+说明：
+- 后端使用 `DefaultAzureCredential` 获取 Bearer Token。
+- 若启用 Azure 模式，聊天与 Realtime 接口都会改用 Azure OpenAI 的 OAuth 鉴权。
+- Web Search 在 Azure 下默认关闭，避免不同预览版本的工具类型不兼容。
+
+## 本地文件存储
+- 默认上传目录：`../data/uploads`
+- 单文件大小限制：`200MB`
+
+## 注意
+- `.env` 不会提交到仓库。
+- 如果你要在生产环境部署，请务必替换默认管理员密码和 JWT 密钥。

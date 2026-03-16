@@ -4,12 +4,16 @@ import { api } from "../api.js";
 export default function VoicePanel() {
   const [status, setStatus] = useState("idle");
   const [token, setToken] = useState(null);
+  const [provider, setProvider] = useState(null);
+  const [webrtcUrl, setWebrtcUrl] = useState(null);
 
   async function handleInit() {
     setStatus("loading");
     try {
       const session = await api.realtimeToken();
       setToken(session?.client_secret?.value || "ready");
+      setProvider(session?.provider || null);
+      setWebrtcUrl(session?.webrtc_url || null);
       setStatus("ready");
     } catch (err) {
       setStatus("error");
@@ -41,6 +45,8 @@ export default function VoicePanel() {
       </button>
       {status === "ready" && <div className="notice">Realtime 会话已就绪</div>}
       {status === "error" && <div className="error">创建会话失败</div>}
+      {provider && <div className="muted small">当前提供方：{provider}</div>}
+      {webrtcUrl && <div className="token">WebRTC: {webrtcUrl}</div>}
       {token && <div className="token">令牌: {token}</div>}
     </div>
   );

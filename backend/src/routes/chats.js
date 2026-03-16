@@ -3,7 +3,7 @@ const { z } = require("zod");
 const { v4: uuidv4 } = require("uuid");
 const { query } = require("../db");
 const { requireAuth } = require("../middleware/auth");
-const { createResponse } = require("../services/openai");
+const { createResponse, getResponseTools, getProvider } = require("../services/openai");
 
 const router = express.Router();
 
@@ -68,7 +68,7 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
   if (!parse.success) {
     return res.status(400).json({ error: "Invalid payload" });
   }
-  const { content, stream, fileIds, useTools } = parse.data;
+  const { content, stream, useTools } = parse.data;
 
   const convo = await query(
     "SELECT id, vector_store_id FROM conversations WHERE id = ? AND user_id = ? LIMIT 1",
@@ -89,21 +89,10 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
     [req.params.id]
   );
 
-  const tools = [];
-  if (useTools !== false) {
-    tools.push({ type: "web_search" });
-    tools.push({ type: "code_interpreter" });
-    tools.push({ type: "image_generation" });
-    if (convo[0].vector_store_id) {
-      tools.push({ type: "file_search", vector_store_ids: [convo[0].vector_store_id] });
-    }
-  }
-
-  const input = buildTranscript(history, content);
   const payload = {
     model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-    input,
-    tools
+    input: buildTranscript(history, content),
+    tools: getResponseTools(convo[0].vector_store_id, useTools !== false)
   };
 
   try {
@@ -123,14 +112,15 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
         Connection: "keep-alive"
       });
       res.write(`event: message\n`);
-      res.write(`data: ${JSON.stringify({ text: outputText })}\n\n`);
+      res.write(`data: ${JSON.stringify({ text: outputText, provider: getProvider() })}\n\n`);
       res.write(`event: done\n`);
       res.write(`data: {}\n\n`);
       return res.end();
     }
-    return res.json({ text: outputText, raw: result });
+
+    return res.json({ text: outputText, raw: result, provider: getProvider() });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "OpenAI error" });
+    return res.status(500).json({ error: err.message || "LLM error", provider: getProvider() });
   }
 });
 
